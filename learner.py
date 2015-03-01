@@ -3,6 +3,7 @@
 # Tool to aid with learning IR commands
 #
 from ir import IRToy
+import json
 import sys
 import base64
 
@@ -15,7 +16,12 @@ if not ir.init():
   print "Unable to initialize IR Toy"
   exit(1)
 
-f = open(sys.argv[2], "a")
+try:
+  jdata = open(sys.argv[2])
+  data = json.load(jdata)
+  jdata.close()
+except:
+  data = {}
 
 while True:
   sys.stdout.write("Name IR command (or enter to end): ")
@@ -34,11 +40,10 @@ while True:
     else:
       print "OK"
       break
-    
-  f.write("{\n");
-  f.write("  \"id\" : \"%s\",\n" % name);
-  f.write("  \"data\" : \"%s\"\n" % base64.urlsafe_b64encode(cmd));
-  f.write("}\n");
 
+  data[name] = base64.urlsafe_b64encode(cmd);
+
+jdata = open(sys.argv[2], "w")
+jdata.write(json.dumps(data))
+jdata.close()
 print "Saved"
-f.close()

@@ -46,6 +46,7 @@ def api_write(data):
   msg = {
     "status" : 200
   }
+  print "INFO: Queueing command for transmission"
   ir.queueIR(cmd)
   ret = jsonify(msg)
   ret.status_code = 200

@@ -112,6 +112,7 @@ class IRToy (threading.Thread):
       cmd = self.outgoing.get(True)
       if self.writeIR(cmd):
         print "INFO: IR command sent successfully"
+        time.sleep(0.150) # Avoid conflict with other devices
       else:
         print "WARN: IR command failed to send"
         

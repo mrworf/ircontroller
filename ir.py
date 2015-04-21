@@ -11,13 +11,26 @@ class IRToy (threading.Thread):
     threading.Thread.__init__(self)
     self.serialport = serialport
     self.daemon = True
+    self.port = None
+    self.state = "unknown"
+    self.start()
 
   def init(self):
     print "INFO: Initializing USB IR Toy interface"
-    
-    self.port = serial.Serial(self.serialport, baudrate=115200, rtscts=False, timeout=10)
+    if self.port is None:
+      self.port = serial.Serial(self.serialport, baudrate=115200, rtscts=False, timeout=10)
+      self.state = "unknown"
+      return self.configure()
+    return True
+
+  def deinit(self):
+    print "INFO: Closing down USB IR Toy interface"
+    if self.port is None:
+      return
+    self.port.close()
+    self.port = None
     self.state = "unknown"
-    return self.configure()
+    return
 
   def configure(self):
     while True:
@@ -39,7 +52,6 @@ class IRToy (threading.Thread):
         self.write("\x24\x25\x26")
         
         print "INFO: Interface online"
-        self.start()
         return True
       except:
         print "WARN: Configure failed, retrying"
@@ -110,11 +122,15 @@ class IRToy (threading.Thread):
   def run(self):
     while True:
       cmd = self.outgoing.get(True)
+      self.init() # Safe to call multiple times
       if self.writeIR(cmd):
         print "INFO: IR command sent successfully"
         time.sleep(0.150) # Avoid conflict with other devices
       else:
         print "WARN: IR command failed to send"
+      if self.outgoing.empty():
+        print "INFO: No more pending commands, shutting down IR"
+        self.deinit()
         
   def read(self, count = 1):
     data = self.port.read(count)

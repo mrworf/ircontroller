@@ -54,9 +54,6 @@ def api_write(data):
 
 if __name__ == "__main__":
   ir = IRToy(cfg_SerialPort)
-  if not ir.init():
-    print "ERROR: Unable to initialize IR module"
-    exit(1)
   app.debug = True
   app.run(host=cfg_ServerAddr, port=cfg_ServerPort, use_debugger=False, use_reloader=False)
   #while True:

@@ -18,7 +18,7 @@ class IRToy (threading.Thread):
   def init(self):
     print "INFO: Initializing USB IR Toy interface"
     if self.port is None:
-      self.port = serial.Serial(self.serialport, baudrate=9600, rtscts=False, timeout=10)
+      self.port = serial.Serial(self.serialport, baudrate=115200, rtscts=False, timeout=10)
       self.state = "unknown"
       return self.configure()
     return True
@@ -27,22 +27,10 @@ class IRToy (threading.Thread):
     print "INFO: Closing down USB IR Toy interface"
     if self.port is None:
       return
-
-    # Reset before closing
-    self.reset()
     self.port.close()
     self.port = None
     self.state = "unknown"
     return
-
-  def reset(self):
-    i = 0
-    print "DEBUG: Resetting IR Toy"
-    while i < 5:
-      self.write("\x00")
-      time.sleep(0.1)
-      i += 1
-
 
   def configure(self):
     while True:
@@ -52,19 +40,18 @@ class IRToy (threading.Thread):
         self.port.flushInput()
         self.port.flushOutput()
 
-        self.reset()
+        self.write("\x00\x00\x00\x00\x00")
+        time.sleep(0.1)
         self.write("S")
         
         result = self.read(3)
         if result != "S01":
           print "ERR: Failed to initialize USB IR Toy"
           return False
-        # Make sure we get details when we transmit (do it byte by byte)
-        self.write("\x24")
-        self.write("\x25")
-        self.write("\x26")
-
-        print "INFO: IR Toy initialized"
+        # Make sure we get details when we transmit
+        self.write("\x24\x25\x26")
+        
+        print "INFO: Interface online"
         return True
       except:
         print "WARN: Configure failed, retrying"
@@ -95,12 +82,12 @@ class IRToy (threading.Thread):
         # Deal with any IR commands which haven't been read
         bytes2send = ord(self.read(1))
         while bytes2send <> 62:
-          print "WARN: Need to flush old buffer (bytes2send = %d)" % bytes2send
+          print "DBG: Need to flush old buffer (bytes2send = %d)" % bytes2send
           p = b = bytes2send
           while not (p == '\xff' and b == '\xff'):
             p = b
             b = self.read()
-          print "WARN: Flushed old IR command, lets try again"
+          print "DBG: Flushed old IR command, lets try again"
           bytes2send = ord(self.read(1))
 
         tosend = len(cmd)
@@ -154,8 +141,10 @@ class IRToy (threading.Thread):
 
   def write(self, data):
     count = 0
-    time.sleep(0.05)
+    #for byte in data:
+    #  count += self.port.write(byte)
     count = self.port.write(data)
+    time.sleep(0.01)
     if len(data) <> count:
       print "ERR: Wanted to write %d bytes, wrote %d" % (len(data), count)
       raise TimeoutException("Write Timeout")

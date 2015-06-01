@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-#
-# Tool to aid with learning IR commands
-#
+"""
+Tool to aid with learning IR commands
+"""
 from ir import IRToy
 import json
 import sys

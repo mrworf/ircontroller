@@ -1,16 +1,30 @@
 #!/usr/bin/env python
-#
-# REST api for sending/receiving IR commands
-#
+
+"""
+REST api for sending/receiving IR commands
+"""
 from ir import IRToy
 from flask import Flask
 from flask import jsonify
 import base64
 import time
+import logging
+import argparse
 
-cfg_SerialPort = "/dev/ttyACM0"
-cfg_ServerAddr = "0.0.0.0"
-cfg_ServerPort = 5001
+""" Parse it! """
+parser = argparse.ArgumentParser(description="IR-2-REST Gateway")
+parser.add_argument('--logfile', metavar="FILE", help="Log to file instead of stdout")
+parser.add_argument('--port', default=5001, type=int, help="Port to listen on")
+parser.add_argument('--listen', metavar="ADDRESS", default="0.0.0.0", help="Address to listen on")
+parser.add_argument('--tty', default="/dev/ttyACM0", help="TTY for USB IR Toy")
+config = parser.parse_args()
+
+""" Setup logging """
+logging.basicConfig(filename=config.logfile, level=logging.DEBUG, format='%(asctime)s - %(filename)s@%(lineno)d - %(levelname)s - %(message)s')
+
+""" Disable some logging by-default """
+logging.getLogger("Flask-Cors").setLevel(logging.ERROR)
+logging.getLogger("werkzeug").setLevel(logging.ERROR)
 
 app = Flask(__name__)
 
@@ -46,15 +60,14 @@ def api_write(data):
   msg = {
     "status" : 200
   }
-  print "INFO: Queueing command for transmission"
+  logging.info("Queueing command for transmission")
   ir.queueIR(cmd)
   ret = jsonify(msg)
   ret.status_code = 200
   return ret
 
 if __name__ == "__main__":
-  ir = IRToy(cfg_SerialPort)
+  ir = IRToy(config.tty)
   app.debug = True
-  app.run(host=cfg_ServerAddr, port=cfg_ServerPort, use_debugger=False, use_reloader=False)
-  #while True:
-  #  time.sleep(5)
+  logging.info("IR-2-REST Gateway running")
+  app.run(host=config.listen, port=config.port, use_debugger=False, use_reloader=False)

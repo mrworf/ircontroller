@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-#
-# Tool to test learned IR commands
-#
+"""
+Tool to test learned IR commands
+"""
 from ir import IRToy
 import sys
 import base64

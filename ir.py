@@ -2,6 +2,7 @@ import serial
 import threading
 import time
 import Queue
+import logging
 
 class IRToy (threading.Thread):
   state = "unknown"
@@ -16,7 +17,7 @@ class IRToy (threading.Thread):
     self.start()
 
   def init(self):
-    print "INFO: Initializing USB IR Toy interface"
+    logging.info("Initializing USB IR Toy interface")
     if self.port is None:
       self.port = serial.Serial(self.serialport, baudrate=115200, rtscts=False, timeout=10)
       self.state = "unknown"
@@ -24,7 +25,7 @@ class IRToy (threading.Thread):
     return True
 
   def deinit(self):
-    print "INFO: Closing down USB IR Toy interface"
+    logging.info("Closing down USB IR Toy interface")
     if self.port is None:
       return
     self.port.close()
@@ -35,7 +36,7 @@ class IRToy (threading.Thread):
   def configure(self):
     while True:
       try:
-        print "INFO: Configuring USB IR Toy"
+        logging.info("Configuring USB IR Toy")
 
         self.port.flushInput()
         self.port.flushOutput()
@@ -46,15 +47,15 @@ class IRToy (threading.Thread):
         
         result = self.read(3)
         if result != "S01":
-          print "ERR: Failed to initialize USB IR Toy"
+          logging.error("Failed to initialize USB IR Toy")
           return False
         # Make sure we get details when we transmit
         self.write("\x24\x25\x26")
         
-        print "INFO: Interface online"
+        logging.info("Interface online")
         return True
       except:
-        print "WARN: Configure failed, retrying"
+        logging.warning("Configure failed, retrying")
         time.sleep(1)
 
     
@@ -82,12 +83,12 @@ class IRToy (threading.Thread):
         # Deal with any IR commands which haven't been read
         bytes2send = ord(self.read(1))
         while bytes2send <> 62:
-          print "DBG: Need to flush old buffer (bytes2send = %d)" % bytes2send
+          logging.debug("Need to flush old buffer (bytes2send = %d)" % bytes2send)
           p = b = bytes2send
           while not (p == '\xff' and b == '\xff'):
             p = b
             b = self.read()
-          print "DBG: Flushed old IR command, lets try again"
+          logging.debug("Flushed old IR command, lets try again")
           bytes2send = ord(self.read(1))
 
         tosend = len(cmd)
@@ -105,18 +106,18 @@ class IRToy (threading.Thread):
           
         resp = self.read(1)
         if resp != "t":
-          print "ERR: Protocol error, aborting"
+          logging.error("Protocol error, aborting")
           return False
           
         high = ord(self.read(1))
         low = ord(self.read(1))
         sent = high << 8 | low
         if sent != tosend:
-          print "ERR: Wanted to send %d bytes, sent %d" % (tosend, sent)
+          logging.error("Wanted to send %d bytes, sent %d" % (tosend, sent))
         result = self.read(1)
         return result == "C"
       except:
-        print "WARN: Timeout sending IR, retrying."
+        logging.warning("Timeout sending IR, retrying.")
         self.configure()
 
   def run(self):
@@ -124,18 +125,18 @@ class IRToy (threading.Thread):
       cmd = self.outgoing.get(True)
       self.init() # Safe to call multiple times
       if self.writeIR(cmd):
-        print "INFO: IR command sent successfully"
+        logging.info("IR command sent successfully")
         time.sleep(0.150) # Avoid conflict with other devices
       else:
-        print "WARN: IR command failed to send"
+        logging.warning("IR command failed to send")
       if self.outgoing.empty():
-        print "INFO: No more pending commands, shutting down IR"
+        logging.info("No more pending commands, shutting down IR")
         self.deinit()
         
   def read(self, count = 1):
     data = self.port.read(count)
     if len(data) <> count:
-      print "ERR: Requested %d bytes, got %d" % (count, len(data))
+      logging.error("Requested %d bytes, got %d" % (count, len(data)))
       raise TimeoutException("Read Timeout")
     return data
 
@@ -146,7 +147,7 @@ class IRToy (threading.Thread):
     count = self.port.write(data)
     time.sleep(0.01)
     if len(data) <> count:
-      print "ERR: Wanted to write %d bytes, wrote %d" % (len(data), count)
+      logging.error("Wanted to write %d bytes, wrote %d" % (len(data), count))
       raise TimeoutException("Write Timeout")
     return count
 

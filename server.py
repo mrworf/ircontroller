@@ -12,7 +12,7 @@ import logging
 import argparse
 
 """ Parse it! """
-parser = argparse.ArgumentParser(description="IR-2-REST Gateway")
+parser = argparse.ArgumentParser(description="IR-2-REST Gateway", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--logfile', metavar="FILE", help="Log to file instead of stdout")
 parser.add_argument('--port', default=5001, type=int, help="Port to listen on")
 parser.add_argument('--listen', metavar="ADDRESS", default="0.0.0.0", help="Address to listen on")

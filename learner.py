@@ -2,7 +2,7 @@
 """
 Tool to aid with learning IR commands
 """
-from ir import IRToy
+from ir_deluxe import IRInterface
 import json
 import sys
 import base64
@@ -11,10 +11,12 @@ if len(sys.argv) < 3:
   print "Usage: learner.py <serial port> <output file>"
   exit(1)
 
-ir = IRToy(sys.argv[1])
+ir = IRInterface(sys.argv[1])
 if not ir.init():
   print "Unable to initialize IR Toy"
   exit(1)
+
+ir.enableReceive(True)
 
 try:
   jdata = open(sys.argv[2])
@@ -29,7 +31,7 @@ while True:
   name = sys.stdin.readline().strip()
   if name == "":
     break
-  
+
   while True:
     sys.stdout.write("Ready for IR command: ")
     sys.stdout.flush()
@@ -41,7 +43,7 @@ while True:
       print "OK"
       break
 
-  data[name] = base64.urlsafe_b64encode(cmd);
+  data[name] = cmd;
 
 jdata = open(sys.argv[2], "w")
 jdata.write(json.dumps(data))

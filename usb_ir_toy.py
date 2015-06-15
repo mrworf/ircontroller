@@ -4,10 +4,10 @@ import time
 import Queue
 import logging
 
-class IRToy (threading.Thread):
+class IRInterface (threading.Thread):
   state = "unknown"
   outgoing = Queue.Queue(10)
-  
+
   def __init__(self, serialport):
     threading.Thread.__init__(self)
     self.serialport = serialport
@@ -44,25 +44,25 @@ class IRToy (threading.Thread):
         self.write("\x00\x00\x00\x00\x00")
         time.sleep(0.1)
         self.write("S")
-        
+
         result = self.read(3)
         if result != "S01":
           logging.error("Failed to initialize USB IR Toy")
           return False
         # Make sure we get details when we transmit
         self.write("\x24\x25\x26")
-        
+
         logging.info("Interface online")
         return True
       except:
         logging.warning("Configure failed, retrying")
         time.sleep(1)
 
-    
+
   def readIR(self):
     """Reads a complete IR command from the receiver and returns the buffer"""
     self.port.flushInput()
-    
+
     p = b = 0x00
     cmd = ""
     while not (p == '\xff' and b == '\xff'):
@@ -73,11 +73,11 @@ class IRToy (threading.Thread):
 
   def queueIR(self, cmd):
     self.outgoing.put(cmd)
-    
+
   def writeIR(self, cmd):
     """Sends a complete IR command which has previously been received with readIR()"""
     while True:
-      try: 
+      try:
         self.write("\x03")
 
         # Deal with any IR commands which haven't been read
@@ -103,12 +103,12 @@ class IRToy (threading.Thread):
             cmd = ""
           self.write(buffer)
           bytes2send = ord(self.read(1))
-          
+
         resp = self.read(1)
         if resp != "t":
           logging.error("Protocol error, aborting")
           return False
-          
+
         high = ord(self.read(1))
         low = ord(self.read(1))
         sent = high << 8 | low
@@ -132,7 +132,7 @@ class IRToy (threading.Thread):
       if self.outgoing.empty():
         logging.info("No more pending commands, shutting down IR")
         self.deinit()
-        
+
   def read(self, count = 1):
     data = self.port.read(count)
     if len(data) <> count:

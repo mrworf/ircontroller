@@ -3,7 +3,7 @@
 """
 REST api for sending/receiving IR commands
 """
-from ir import IRToy
+from ir_deluxe import IRInterface
 from flask import Flask
 from flask import jsonify
 import base64
@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(description="IR-2-REST Gateway", formatter_clas
 parser.add_argument('--logfile', metavar="FILE", help="Log to file instead of stdout")
 parser.add_argument('--port', default=5001, type=int, help="Port to listen on")
 parser.add_argument('--listen', metavar="ADDRESS", default="0.0.0.0", help="Address to listen on")
-parser.add_argument('--tty', default="/dev/ttyACM0", help="TTY for USB IR Toy")
+parser.add_argument('--tty', default="/dev/ttyACM1", help="TTY for USB IR Toy")
 config = parser.parse_args()
 
 """ Setup logging """
@@ -47,7 +47,7 @@ def api_read():
     msg["status"] = 200
   else:
     msg["status"] = 404
-    
+
   ret = jsonify(msg)
   ret.status_code = 200
   return ret
@@ -67,7 +67,7 @@ def api_write(data):
   return ret
 
 if __name__ == "__main__":
-  ir = IRToy(config.tty)
+  ir = IRInterface(config.tty)
   app.debug = True
   logging.info("IR-2-REST Gateway running")
   app.run(host=config.listen, port=config.port, use_debugger=False, use_reloader=False)

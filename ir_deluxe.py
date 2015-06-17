@@ -127,9 +127,11 @@ class IRInterface (threading.Thread):
       elif not self.outgoing.empty():
         try:
           data = self.outgoing.get(False)
+          logging.debug("Sending: " + repr(data))
           self.port.write(data)
         except:
-          logging.exception("Queue indicated data but get failed")
+          pass
+          #logging.exception("Queue indicated data but get failed")
 
 
   def interpretBuffer(self):

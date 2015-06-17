@@ -17,13 +17,18 @@ class IRInterface (threading.Thread):
     self.state = "unknown"
     self.outgoing = Queue.Queue(10)
     self.ircodes = Queue.Queue(100)
-
-    self.start()
+    self.lock = threading.Lock()
+    self.status = None
 
   def init(self):
     logging.info("Initializing IRDeluxe^2 interface")
     self.port = serial.Serial(self.serialport, baudrate=115200, rtscts=False, timeout=0.1)
+    if self.port is None:
+      logging.error("Unable to open serial port, abort")
+      exit(1)
+
     self.state = "unknown"
+    self.start()
     return self.configure()
 
   def deinit(self):
@@ -43,6 +48,7 @@ class IRInterface (threading.Thread):
       self.port.flushInput()
       self.port.flushOutput()
 
+      self.lock.acquire()
       self.port.sendBreak()
       return True
 
@@ -51,15 +57,35 @@ class IRInterface (threading.Thread):
       logging.warning("Configure failed, retrying")
       return False
 
+  def readStatus(self):
+    self.lock.acquire(True)
+    self.outgoing.put('{"requestStatus": 1}')
+    # We will get released from the other thread, thus we call it AGAIN
+    self.lock.acquire(True)
+    self.lock.release()
+    return self.status
+
+  def setIndicatorLevel(self, level):
+    if level > 100:
+      level = 100
+    elif level < 0:
+      level = 0
+    str = '{"indicatorBrightness": %d}' % level
+    self.outgoing.put(str)
+
   def enableReceive(self, enable):
     if self.receiving == enable:
       return
     if enable:
-      self.outgoing.put('{"receiveMode" : 1}')
+      self.queueIR('{"receiveMode" : 1}')
       self.receiving = True
     else:
-      self.outgoing.put('{"receiveMode" : 0}')
+      self.queueIR('{"receiveMode" : 0}')
       self.receiving = False
+
+  def clearIR(self):
+    while self.readIR() is not None:
+      pass
 
   def readIR(self, blocking=False):
     if blocking:
@@ -71,17 +97,31 @@ class IRInterface (threading.Thread):
         return None
 
   def queueIR(self, cmd):
-    self.outgoing.put(cmd)
+    self.writeIR(cmd, False)
 
-  def writeIR(self, cmd):
-    pass
+  def writeIR(self, cmd, direct=True):
+    """
+    We need to make sure that carrierFreq is sent first, so we split it. We also
+    need to wait for init, so use the lock.
+    """
+    self.lock.acquire(True)
+    if type(cmd) is dict:
+      str = '{"carrierFreq" : %d, "rawTransmit": %s}' % (cmd["carrierFreq"], json.JSONEncoder().encode(cmd["rawTransmit"]))
+    else:
+      str = cmd
+
+    if direct:
+      self.port.write(str)
+    else:
+      self.outgoing.put(str)
+    self.lock.release()
+    return direct
 
   def run(self):
-    self.init()
     while True:
       data = self.port.read(1024)
+
       if len(data) > 0:
-        print data
         self.serialbuffer += data
         self.interpretBuffer()
       elif not self.outgoing.empty():
@@ -121,15 +161,22 @@ class IRInterface (threading.Thread):
             s = 0
             # Remove the JSON
             break
-      print "Done"
 
   def processIncoming(self, data):
     if "carrierFreq" in data and "rawTransmit" in data:
       logging.debug("Incoming IR sequence")
       self.ircodes.put(data)
+    elif "IRDeluxeVersion" in data and data["state"] == "init":
+      logging.info("IR Deluxe^2 detected, version %s" % data["IRDeluxeVersion"])
+      self.lock.release()
+    elif "firmwareVersion" in data:
+      logging.info("Status received")
+      self.status = data
+      self.lock.release()
     elif "commandResult" in data:
-      logging.debug("Result from operation: " + repr(data))
-
+      # This must be last!
+      if data["commandResult"] > 0:
+        logging.debug("Result from operation: " + repr(data))
 
 class TimeoutException(Exception):
   pass

@@ -2,7 +2,7 @@
 """
 Tool to test learned IR commands
 """
-from ir import IRToy
+from ir_deluxe import IRInterface
 import sys
 import base64
 import json
@@ -24,12 +24,12 @@ else:
 		print "ERROR: %s is not a recognized command" % sys.argv[2]
 		exit(1)
 
-	ir = IRToy(sys.argv[3])
+	ir = IRInterface(sys.argv[3])
 	if not ir.init():
-	  print "ERR: Unable to initialize IR Toy on %s" % sys.argv[3]
+	  print "ERR: Unable to initialize IR interface on %s" % sys.argv[3]
 	  exit(1)
 
-	if ir.writeIR(base64.urlsafe_b64decode(data[sys.argv[2]].encode("utf-8"))):
+	if ir.writeIR(data[sys.argv[2]]):
 		print "INFO: Command sent successfully"
 	else:
 		print "ERR: Was unable to send command"

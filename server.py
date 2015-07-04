@@ -11,6 +11,11 @@ import time
 import logging
 import argparse
 
+from tornado.wsgi import WSGIContainer
+from tornado.httpserver import HTTPServer
+from tornado.ioloop import IOLoop
+
+
 """ Parse it! """
 parser = argparse.ArgumentParser(description="IR-2-REST Gateway", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--logfile', metavar="FILE", help="Log to file instead of stdout")
@@ -70,4 +75,7 @@ if __name__ == "__main__":
   ir.init()
   app.debug = True
   logging.info("IR-2-REST Gateway running")
-  app.run(host=config.listen, port=config.port, use_debugger=False, use_reloader=False)
+  #app.run(host=config.listen, port=config.port, use_debugger=False, use_reloader=False)
+  http_server = HTTPServer(WSGIContainer(app))
+  http_server.listen(config.port)
+  IOLoop.instance().start()

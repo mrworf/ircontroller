@@ -106,7 +106,7 @@ class IRInterface (threading.Thread):
     """
     self.lock.acquire(True)
     if type(cmd) is dict:
-      str = '{"carrierFreq" : %d, "rawTransmit": %s}' % (cmd["carrierFreq"], json.JSONEncoder().encode(cmd["rawTransmit"]))
+      str = '{"carrierFreq": %d, "rawTransmit": %s}' % (cmd["carrierFreq"], json.JSONEncoder().encode(cmd["rawTransmit"]))
     else:
       str = cmd
 
@@ -129,6 +129,7 @@ class IRInterface (threading.Thread):
           data = self.outgoing.get(False)
           logging.debug("Sending: " + repr(data))
           self.port.write(data)
+          time.sleep(0.1)
         except:
           pass
           #logging.exception("Queue indicated data but get failed")
@@ -156,8 +157,11 @@ class IRInterface (threading.Thread):
             b -= 1
           if b == 0 and section:
             # Found a section...
-            j = json.loads(self.serialbuffer[s:i+1])
-            self.processIncoming(j)
+            try:
+              j = json.loads(self.serialbuffer[s:i+1])
+              self.processIncoming(j)
+            except:
+              logging.exception("Failed to process JSON: " + self.serialbuffer[s:i+1])
             self.serialbuffer = self.serialbuffer[i+2:]
             found = True
             s = 0

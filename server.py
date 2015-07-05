@@ -35,7 +35,15 @@ app = Flask(__name__)
 
 @app.route("/")
 def api_root():
-  return "Hi there"
+  msg = {
+    "firmware" : ir.firmware,
+    "pending-write" : ir.outgoing.qsize(),
+    "pending-read" : ir.ircodes.qsize(),
+    "busy" : ir.clear2send == False
+  }
+  ret = jsonify(msg)
+  ret.status_code = 200
+  return ret
 
 @app.route("/read")
 def api_read():

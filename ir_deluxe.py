@@ -15,14 +15,16 @@ class IRInterface (threading.Thread):
     self.state = "unknown"
     self.receiving = False
     self.state = "unknown"
-    self.outgoing = Queue.Queue(10)
+    self.outgoing = Queue.Queue(20)
     self.ircodes = Queue.Queue(100)
     self.lock = threading.Lock()
     self.status = None
+    self.clear2send = True
+    self.firmware = "unknown"
 
   def init(self):
     logging.info("Initializing IRDeluxe^2 interface")
-    self.port = serial.Serial(self.serialport, baudrate=115200, rtscts=False, timeout=0.1)
+    self.port = serial.Serial(self.serialport, baudrate=115200, rtscts=True, timeout=0.1)
     if self.port is None:
       logging.error("Unable to open serial port, abort")
       exit(1)
@@ -106,7 +108,14 @@ class IRInterface (threading.Thread):
     """
     self.lock.acquire(True)
     if type(cmd) is dict:
-      str = '{"carrierFreq": %d, "rawTransmit": %s}' % (cmd["carrierFreq"], json.JSONEncoder().encode(cmd["rawTransmit"]))
+
+      # Triplicate(?) the rawtransmit data
+      toSend = cmd["rawTransmit"]
+      final = toSend
+      final.extend(toSend)
+      final.extend(toSend)
+
+      str = '{"carrierFreq": %d, "rawTransmit": %s}' % (cmd["carrierFreq"], json.JSONEncoder().encode(final))
     else:
       str = cmd
 
@@ -122,12 +131,14 @@ class IRInterface (threading.Thread):
       data = self.port.read(1024)
 
       if len(data) > 0:
+        logging.debug('Data received: "' + data + '"')
         self.serialbuffer += data
         self.interpretBuffer()
-      elif not self.outgoing.empty():
+      if not self.outgoing.empty() and self.clear2send:
         try:
           data = self.outgoing.get(False)
-          logging.debug("Sending: " + repr(data))
+          #logging.debug("Sending: " + repr(data))
+          self.clear2send = False
           self.port.write(data)
           time.sleep(0.1)
         except:
@@ -161,7 +172,7 @@ class IRInterface (threading.Thread):
               j = json.loads(self.serialbuffer[s:i+1])
               self.processIncoming(j)
             except:
-              logging.exception("Failed to process JSON: " + self.serialbuffer[s:i+1])
+              logging.exception('Failed to process JSON: "' + self.serialbuffer[s:i+1] + '", i = ' + repr(i) + ', s = ' + repr(s))
             self.serialbuffer = self.serialbuffer[i+2:]
             found = True
             s = 0
@@ -174,6 +185,7 @@ class IRInterface (threading.Thread):
       self.ircodes.put(data)
     elif "IRDeluxeVersion" in data and data["state"] == "init":
       logging.info("IR Deluxe^2 detected, version %s" % data["IRDeluxeVersion"])
+      self.firmware = data["IRDeluxeVersion"]
       self.lock.release()
     elif "firmwareVersion" in data:
       logging.info("Status received")
@@ -183,6 +195,7 @@ class IRInterface (threading.Thread):
       # This must be last!
       if data["commandResult"] > 0:
         logging.debug("Result from operation: " + repr(data))
+      self.clear2send = True
 
 class TimeoutException(Exception):
   pass

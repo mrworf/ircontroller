@@ -79,10 +79,10 @@ class IRInterface (threading.Thread):
     if self.receiving == enable:
       return
     if enable:
-      self.queueIR('{"receiveMode" : 1}')
+      self.queueIR('{"receiveMode":1}')
       self.receiving = True
     else:
-      self.queueIR('{"receiveMode" : 0}')
+      self.queueIR('{"receiveMode":0}')
       self.receiving = False
 
   def clearIR(self):
@@ -112,8 +112,8 @@ class IRInterface (threading.Thread):
       # Triplicate(?) the rawtransmit data
       toSend = cmd["rawTransmit"]
       final = toSend
-      final.extend(toSend)
-      final.extend(toSend)
+      #final.extend(toSend)
+      #final.extend(toSend)
 
       str = '{"carrierFreq": %d, "rawTransmit": %s}' % (cmd["carrierFreq"], json.JSONEncoder().encode(final))
     else:
@@ -124,6 +124,7 @@ class IRInterface (threading.Thread):
     else:
       self.outgoing.put(str)
     self.lock.release()
+
     return direct
 
   def run(self):

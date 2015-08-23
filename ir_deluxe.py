@@ -122,6 +122,7 @@ class IRInterface (threading.Thread):
     if direct:
       self.port.write(str)
       time.sleep(0.150) # Sleep 150ms to avoid collision, this needs to be moved into the multiremote platform instead
+      self.lastCommand = data
     else:
       self.outgoing.put(str)
     self.lock.release()
@@ -142,7 +143,8 @@ class IRInterface (threading.Thread):
           #logging.debug("Sending: " + repr(data))
           self.clear2send = False
           self.port.write(data)
-          time.sleep(0.1)
+          time.sleep(0.15)
+          self.lastCommand = data
         except:
           pass
           #logging.exception("Queue indicated data but get failed")
@@ -159,6 +161,7 @@ class IRInterface (threading.Thread):
       # Count our way to the end
       b = 0
       found = True
+      resend = False
       while found:
         found = False
         section = False
@@ -172,7 +175,7 @@ class IRInterface (threading.Thread):
             # Found a section...
             try:
               j = json.loads(self.serialbuffer[s:i+1])
-              self.processIncoming(j)
+              resend = self.processIncoming(j) ? True : resend
             except:
               logging.exception('Failed to process JSON: "' + self.serialbuffer[s:i+1] + '", i = ' + repr(i) + ', s = ' + repr(s))
             self.serialbuffer = self.serialbuffer[i+2:]
@@ -180,8 +183,13 @@ class IRInterface (threading.Thread):
             s = 0
             # Remove the JSON
             break
+      if resend and self.lastCommand is not None:
+        logging.warn("Resending last command due to error on parsing")
+        logging.debug("Command being resent is: " + repr(self.lastCommand))
+        self.writeIR(self.lastCommand)
 
   def processIncoming(self, data):
+    resend = False
     if "carrierFreq" in data and "rawTransmit" in data:
       logging.debug("Incoming IR sequence")
       self.ircodes.put(data)
@@ -197,7 +205,12 @@ class IRInterface (threading.Thread):
       # This must be last!
       if data["commandResult"] > 0:
         logging.debug("Result from operation: " + repr(data))
+        resend = True
+      else:
+        self.lastCommand = None
+
       self.clear2send = True
+    return resend
 
 class TimeoutException(Exception):
   pass

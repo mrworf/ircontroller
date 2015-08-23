@@ -121,6 +121,7 @@ class IRInterface (threading.Thread):
 
     if direct:
       self.port.write(str)
+      time.sleep(0.150) # Sleep 150ms to avoid collision, this needs to be moved into the multiremote platform instead
     else:
       self.outgoing.put(str)
     self.lock.release()

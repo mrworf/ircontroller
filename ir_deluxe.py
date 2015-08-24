@@ -21,6 +21,7 @@ class IRInterface (threading.Thread):
     self.status = None
     self.clear2send = True
     self.firmware = "unknown"
+    self.lastCommand = None
 
   def init(self):
     logging.info("Initializing IRDeluxe^2 interface")
@@ -112,8 +113,8 @@ class IRInterface (threading.Thread):
       # Triplicate(?) the rawtransmit data
       toSend = cmd["rawTransmit"]
       final = toSend
-      #final.extend(toSend)
-      #final.extend(toSend)
+      final.extend(toSend)
+      final.extend(toSend)
 
       str = '{"carrierFreq": %d, "rawTransmit": %s}' % (cmd["carrierFreq"], json.JSONEncoder().encode(final))
     else:
@@ -122,7 +123,7 @@ class IRInterface (threading.Thread):
     if direct:
       self.port.write(str)
       time.sleep(0.150) # Sleep 150ms to avoid collision, this needs to be moved into the multiremote platform instead
-      self.lastCommand = data
+      self.lastCommand = cmd
     else:
       self.outgoing.put(str)
     self.lock.release()
@@ -175,7 +176,8 @@ class IRInterface (threading.Thread):
             # Found a section...
             try:
               j = json.loads(self.serialbuffer[s:i+1])
-              resend = self.processIncoming(j) ? True : resend
+              if self.processIncoming(j):
+                resend = True
             except:
               logging.exception('Failed to process JSON: "' + self.serialbuffer[s:i+1] + '", i = ' + repr(i) + ', s = ' + repr(s))
             self.serialbuffer = self.serialbuffer[i+2:]

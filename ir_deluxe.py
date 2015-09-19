@@ -50,7 +50,7 @@ class IRInterface (threading.Thread):
       self.port.sendBreak()
       self.start()
       msg = self.readIR(True)
-      print repr(msg)
+      #print repr(msg)
 
       # Remove the lock and release anyone who might have been waiting...
       self.status = self.readStatus()

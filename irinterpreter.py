@@ -5,7 +5,7 @@ import copy
  * and merges any pulses lower than a certain duration
  *
  * @param seq IR Sequence
- * @param cutoff Min signal length, anything below this is merged 
+ * @param cutoff Min signal length, anything below this is merged
  *               with previous cycle
  *
  * @return cleaned Sequence
@@ -69,10 +69,13 @@ def readbits(input, bits, on_h, on_l, off_h, off_l, allowTrail=False):
 		l = input.pop(0)
 
 		if dcmp(h, on_h) and dcmp(l, on_l):
-			result |= 1 << (bits - i - 1)
+			result |= 1 << i
 		elif allowTrail and (l > on_l or l > off_l) and i == (bits-1):
 			trail = l
 		elif not dcmp(h, off_h) or (not dcmp(l, off_l) and l != 65535):
+			# Put them back, or we cannot handle cases where we need this data
+			input[:0] = [l]
+			input[:0] = [h]
 			return None
 		time += (h + l)
 		i += 1
@@ -111,13 +114,27 @@ def countbits(input, on_h, on_l, off_h, off_l, allowTrail=False):
 	return len(input)/2
 
 """
+Scans for start sequence, returns the total time for the pulse or -1
+if no start is found.
+"""
+def scanStart(sequence, high, low):
+	while len(sequence) > 1:
+		h = sequence.pop(0)
+		l = sequence.pop(0)
+
+		# Initial preamble may have a much longer high than required, which is OK
+		if dcmp(h, high) and dcmp(l, low):
+			return h+l
+		elif h > high and dcmp(l, low):
+			return high+l
+	return -1
+
+"""
 Interprets JVC IR signals
 """
 def jvc(sequence):
-	h = sequence.pop(0)
-	l = sequence.pop(0)
-
-	if not (dcmp(h, 8400) and dcmp(l, 4200)):
+	pre = scanStart(sequence, 8400, 4200)
+	if pre is -1:
 		return None
 
 	address = readbits(sequence, 8, 526, 526*3, 526, 526)
@@ -125,7 +142,7 @@ def jvc(sequence):
 	if address is None or command is None:
 		return None
 
-	end = readbits(sequence, 1, 526, 60000 - (address["time"] + command["time"] + h + l), 1, 1);
+	end = readbits(sequence, 1, 526, 60000 - (address["time"] + command["time"] + pre), 1, 1);
 	if end is None:
 		return None
 
@@ -135,10 +152,8 @@ def jvc(sequence):
 Interprets Sony IR signals. 12, 15 and 20 bit versions supported.
 """
 def sony(sequence):
-	h = sequence.pop(0)
-	l = sequence.pop(0)
-
-	if not (dcmp(h, 2400) and dcmp(l, 600)):
+	pre = scanStart(sequence, 2400, 600)
+	if pre is -1:
 		return None
 
 	bits = countbits(sequence, 1200, 600, 600, 600, True)
@@ -156,7 +171,7 @@ def sony(sequence):
 		address = readbits(sequence, 5, 1200, 600, 600, 600)
 		extend  = readbits(sequence, 8, 1200, 600, 600, 600, True)
 	else:
-		print "Unknown sony, %d bits" % bits
+		#print "Unknown sony, %d bits" % bits
 		return None
 
 	if command is None or address is None:
@@ -167,10 +182,8 @@ def sony(sequence):
 Interprets NEC IR signals, regular and extended.
 """
 def nec(sequence):
-	h = sequence.pop(0)
-	l = sequence.pop(0)
-
-	if not (dcmp(h, 9000) and dcmp(l, 4500)):
+	pre = scanStart(sequence, 9000, 4500)
+	if pre is -1:
 		return None
 
 	extend  = False
@@ -183,10 +196,13 @@ def nec(sequence):
 	if not dcmp(sequence.pop(0), 562):
 		return None
 
-	if iaddress["value"] ^ address["value"] is not 255:
+	if address is None or iaddress is None or command is None or icommand is None:
+		return None
+
+	if (iaddress["value"] ^ address["value"]) != 255:
 		extend = True
 		address["value"] |= (iaddress["value"] << 8)
-	if icommand["value"] ^ command["value"] is not 255:
+	if (icommand["value"] ^ command["value"]) != 255:
 		return None
 
 	return {"address" : address, "command" : command}
@@ -202,7 +218,7 @@ mapping = [
 		"func": jvc
 	},
 	{
-		"name": "sony",
+		"name": "sirc",
 		"func": sony
 	},
 	{
@@ -222,7 +238,9 @@ def recognize(input):
 	clean = dejitter(input, 100)
 	for interpreter in mapping:
 		sequence = copy.copy(clean)
-		result = interpreter["func"](sequence)
+		result = None
+		while len(sequence) > 2 and result is None:
+			result = interpreter["func"](sequence)
 		if result is not None:
 			ret = {"name": interpreter["name"]}
 			for item in result:

@@ -118,6 +118,14 @@ if config.learn and config.file:
 
       # Continue
       print "OK"
+
+      # See if we can interpret this, if so, skip cumbersome filtering
+      rec = recognize(cmd["rawTransmit"])
+      if rec is not None:
+        print "Detected %s code." % rec["name"].upper()
+        cmd = {rec["name"] + "Send": [rec["address"],rec["command"]]}
+        break
+
       input.append(cmd)
       if len(input) > 1:
         # Now we compare

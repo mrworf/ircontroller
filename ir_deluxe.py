@@ -40,19 +40,17 @@ class IRInterface (threading.Thread):
   def configure(self):
     try:
       logging.info("Configuring interface")
+      self.start()
 
       self.serialbuffer = ""
       self.state = "configure"
 
       self.port.flushInput()
       self.port.flushOutput()
-
       self.port.sendBreak()
-      self.start()
       msg = self.readIR(True)
       #print repr(msg)
 
-      # Remove the lock and release anyone who might have been waiting...
       self.status = self.readStatus()
       logging.debug("Configuration: " + repr(self.status))
       return True
@@ -105,8 +103,7 @@ class IRInterface (threading.Thread):
 
   def writeIR(self, cmd):
     """
-    We need to make sure that carrierFreq is sent first, so we split it. We also
-    need to wait for init, so use the lock.
+    We need to make sure that carrierFreq is sent first, so we split it.
     """
     if type(cmd) is dict:
       if "carrierFreq" in cmd and "rawTransmit" in cmd:

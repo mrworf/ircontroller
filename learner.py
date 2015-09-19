@@ -11,7 +11,7 @@ import logging
 import argparse
 
 """ Parse it! """
-parser = argparse.ArgumentParser(description="IR Deluxe^2 Tool", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser = argparse.ArgumentParser(description="IR Deluxe^2 Learn Tool", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--tty', default="/dev/ttyACM0", help="TTY for IR Deluxe^2")
 parser.add_argument('--file', help="Location to load/save IR codes (in JSON format)")
 parser.add_argument('--raw', action="store_true", default=False, help="Store all IR codes as raw format, do not interpret")

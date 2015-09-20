@@ -162,16 +162,15 @@ def sony(sequence):
 	extend = None
 	if bits is 12:
 		command = readbits(sequence, 7, 1200, 600, 600, 600)
-		address = readbits(sequence, 5, 1200, 600, 600, 600)
+		address = readbits(sequence, 5, 1200, 600, 600, 600, True)
 	elif bits is 15:
 		command = readbits(sequence, 7, 1200, 600, 600, 600)
-		address = readbits(sequence, 8, 1200, 600, 600, 600)
+		address = readbits(sequence, 8, 1200, 600, 600, 600, True)
 	elif bits is 20:
 		command = readbits(sequence, 7, 1200, 600, 600, 600)
 		address = readbits(sequence, 5, 1200, 600, 600, 600)
 		extend  = readbits(sequence, 8, 1200, 600, 600, 600, True)
 	else:
-		#print "Unknown sony, %d bits" % bits
 		return None
 
 	if command is None or address is None:
@@ -244,7 +243,10 @@ def recognize(input):
 		if result is not None:
 			ret = {"name": interpreter["name"]}
 			for item in result:
-				ret[item] = result[item]["value"]
+				if result[item] is not None:
+					ret[item] = result[item]["value"]
+				else:
+					ret[item] = None
 			return ret
 
 	return None

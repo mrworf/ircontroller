@@ -1,3 +1,4 @@
+import sys
 import serial
 import threading
 import Queue
@@ -7,7 +8,7 @@ import json
 
 class IRInterface (threading.Thread):
 
-  def __init__(self, serialport):
+  def __init__(self, serialport, cbTerminate):
     threading.Thread.__init__(self)
     self.serialport = serialport
     self.daemon = True
@@ -19,6 +20,7 @@ class IRInterface (threading.Thread):
     self.ircodes = Queue.Queue(100)
     self.status = None
     self.firmware = "unknown"
+    self.cbTerminate = cbTerminate
 
   def init(self):
     logging.info("Initializing IRDeluxe^2 interface")
@@ -116,7 +118,11 @@ class IRInterface (threading.Thread):
 
   def run(self):
     while True:
-      data = self.port.read(1024)
+      try:
+        data = self.port.read(1024)
+      except:
+        logging.error('Serial port exception, maybe device low voltage or disconnected.')
+        self.cbTerminate()
 
       if len(data) > 0:
         self.serialbuffer += data

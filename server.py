@@ -142,8 +142,11 @@ class Debug (threading.Thread):
       self.buffer.append(line)
 
 
+def stopServer():
+  IOLoop.instance().stop()
+
 if __name__ == "__main__":
-  ir = IRInterface(config.tty)
+  ir = IRInterface(config.tty, stopServer)
   if config.debug is not None:
     debugbuf = Debug()
     if debugbuf.init(config.debug) is False:
@@ -158,3 +161,4 @@ if __name__ == "__main__":
   http_server = HTTPServer(WSGIContainer(app))
   http_server.listen(config.port)
   IOLoop.instance().start()
+  sys.exit(255)

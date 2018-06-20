@@ -1,9 +1,12 @@
 [Unit]
 Description=IR-REST gateway
+After=network.target
 
 [Service]
 Type=simple
+User=root
 Restart=always
+WorkingDirectory=/root/ircontroller/
 ExecStart=/root/ircontroller/start.sh
 
 [Install]

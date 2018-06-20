@@ -1,0 +1,10 @@
+[Unit]
+Description=IR-REST gateway
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/root/ircontroller/start.sh
+
+[Install]
+WantedBy=multi-user.target

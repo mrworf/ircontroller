@@ -31,7 +31,7 @@ parser.add_argument('--debug', default="/dev/hidraw1", help="Enable debugging, u
 config = parser.parse_args()
 
 """ Setup logging """
-logging.basicConfig(filename=config.logfile, level=logging.DEBUG, format='%(asctime)s - %(filename)s@%(lineno)d - %(levelname)s - %(message)s')
+logging.basicConfig(filename=config.logfile, level=logging.DEBUG, format='%(filename)s@%(lineno)d - %(levelname)s - %(message)s')
 
 """ Disable some logging by-default """
 logging.getLogger("Flask-Cors").setLevel(logging.ERROR)

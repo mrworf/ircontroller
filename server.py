@@ -102,6 +102,8 @@ class SendQueue (threading.Thread):
       tries = 3
       while tries != 0:
         ir.writeIR(data)
+        if 'rawTransmit' not in data:
+          break
         tries = tries - 1
 
         result = ir.readIR(True)

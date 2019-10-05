@@ -62,7 +62,7 @@ def parsePronto(raw):
   return {"carrierFreq": pcarrier, "rawTransmit": data}
 
 changed = False
-ir = IRInterface(config.tty)
+ir = IRInterface(config.tty, lambda: x)
 if config.learn and not config.pronto:
   sys.stdout.write("Initializing IR Deluxe^2...")
   sys.stdout.flush()

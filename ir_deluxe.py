@@ -51,7 +51,6 @@ class IRInterface (threading.Thread):
       self.port.flushOutput()
       self.port.sendBreak()
       msg = self.readIR(True)
-      #print repr(msg)
 
       self.status = self.readStatus()
       logging.debug("Configuration: " + repr(self.status))
@@ -114,10 +113,12 @@ class IRInterface (threading.Thread):
         str = json.JSONEncoder().encode(cmd)
     else:
       str = cmd
+    logging.debug('Sending: %s', str)
     self.outgoing.put(str)
 
   def run(self):
     while True:
+      data = ''
       try:
         data = self.port.read(1024)
       except:

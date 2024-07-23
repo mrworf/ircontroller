@@ -2,8 +2,9 @@
 
 while true; do
 	# Locate the correct ttyACM for IR Deluxe
-	TTY=$(dmesg | grep ACM | tail -n 1 | egrep -oe 'ttyACM[0-9]')
-	HID=$(dmesg | grep hidraw | tail -n 1 | egrep -oe 'hidraw[0-9]')
+  TTY=$(udevadm info -e | grep -oE '/dev/ttyACM[0-9]+' | tail -n 1 | xargs -I {} basename {})
+  HID=$(udevadm info -e | grep -oE '/dev/hidraw[0-9]+' | tail -n 1 | xargs -I {} basename {})
+
 	if [ $? -eq 0 -a -e /dev/${TTY} ]; then
 		./server.py --tty /dev/${TTY} --debug /dev/${HID}
 		echo "Server terminated"

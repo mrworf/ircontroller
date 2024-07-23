@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 REST api for sending/receiving IR commands
@@ -13,7 +13,7 @@ import time
 import logging
 import argparse
 import threading
-import Queue
+import queue
 import os
 
 from tornado.wsgi import WSGIContainer
@@ -89,7 +89,7 @@ IR transmitter.
 class SendQueue (threading.Thread):
   def __init__(self):
     threading.Thread.__init__(self)
-    self.queue = Queue.Queue(20)
+    self.queue = queue.Queue(20)
     self.daemon = True
     self.start()
 
@@ -111,7 +111,7 @@ class SendQueue (threading.Thread):
         tmp = ir.readIR(False)
         if tmp != None:
           result = tmp
-        if result["commandResult"] is not 0:
+        if result["commandResult"] != 0:
           logging.error("Failed to send, due to: %s" % repr(result))
           logging.error("Command was: " + repr(data))
           logging.error("Tries left: %d" % tries)

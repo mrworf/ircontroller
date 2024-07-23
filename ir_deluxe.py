@@ -1,7 +1,7 @@
 import sys
 import serial
 import threading
-import Queue
+import queue
 import time
 import logging
 import json
@@ -16,8 +16,8 @@ class IRInterface (threading.Thread):
     self.state = "unknown"
     self.receiving = False
     self.state = "unknown"
-    self.outgoing = Queue.Queue(20)
-    self.ircodes = Queue.Queue(100)
+    self.outgoing = queue.Queue(20)
+    self.ircodes = queue.Queue(100)
     self.status = None
     self.firmware = "unknown"
     self.cbTerminate = cbTerminate
@@ -44,7 +44,7 @@ class IRInterface (threading.Thread):
       logging.info("Configuring interface")
       self.start()
 
-      self.serialbuffer = ""
+      self.serialbuffer = ''
       self.state = "configure"
 
       self.port.flushInput()
@@ -120,7 +120,7 @@ class IRInterface (threading.Thread):
     while True:
       data = ''
       try:
-        data = self.port.read(1024)
+        data = self.port.read(1024).decode('ascii')
       except:
         logging.error('Serial port exception, maybe device low voltage or disconnected.')
         self.cbTerminate()
@@ -130,9 +130,14 @@ class IRInterface (threading.Thread):
         self.interpretBuffer()
       try:
         data = self.outgoing.get(False)
-        self.port.write(data)
+        logging.info(f'Writing {data} to serial port')
+        self.port.write(data.encode('ascii'))
+        logging.info(f'Done writing')
         time.sleep(0.15)
+      except queue.Empty as e:
+        pass
       except:
+        logging.exception('Exception caught')
         pass
 
   def interpretBuffer(self):
@@ -172,4 +177,5 @@ class IRInterface (threading.Thread):
     self.ircodes.put(data)
 
 class TimeoutException(Exception):
+  #logging.debug('TimeoutException ignored')
   pass

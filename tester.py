@@ -18,25 +18,28 @@ config = parser.parse_args()
 jdata = open(config.FILE)
 data = json.load(jdata)
 
+def terminated():
+  print('Terminate received')
+
 if not config.command:
-  print "Available commands in %s:" % config.FILE
+  print("Available commands in %s:" % config.FILE)
   for cmd in data:
-    print "  %s" % cmd
+    print("  %s" % cmd)
 else:
   if config.command not in data:
-    print "ERROR: %s is not a recognized command" % config.command
+    print("ERROR: %s is not a recognized command" % config.command)
     sys.exit(1)
 
   sys.stdout.write("Initializing IR Deluxe^2...")
   sys.stdout.flush()
-  ir = IRInterface(config.tty)
+  ir = IRInterface(config.tty, terminated)
   if not ir.init():
-    print "ERR: Unable to initialize IR interface on %s" % config.tty
+    print("ERR: Unable to initialize IR interface on %s" % config.tty)
     sys.exit(1)
 
   ir.writeIR(data[config.command])
   result = ir.readIR(True)
   if result["commandResult"] is "0":
-    print "INFO: Command sent successfully"
+    print("INFO: Command sent successfully")
   else:
-    print "ERR: Was unable to send command: " + repr(result)
+    print("ERR: Was unable to send command: " + repr(result))

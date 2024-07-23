@@ -57,7 +57,7 @@ def parsePronto(raw):
       main += 1
       data.append(int(round(int(p, 16)*punit)))
   if len(data) % 2:
-    print "ERROR: Not even pairs"
+    print("ERROR: Not even pairs")
     return None
   return {"carrierFreq": pcarrier, "rawTransmit": data}
 
@@ -68,13 +68,13 @@ if config.learn and not config.pronto:
   sys.stdout.flush()
 
   if not ir.init():
-    print "Error"
+    print("Error")
     logging.error("Unable to initialize IR Toy (%s)" % config.tty)
     sys.exit(1)
 
   ir.enableReceive(True)
   status = ir.readStatus()
-  print "OK\nFirmware: %s\nBootloader: %s\n" % (status["firmwareVersion"], status["bootloaderVersion"])
+  print("OK\nFirmware: %s\nBootloader: %s\n" % (status["firmwareVersion"], status["bootloaderVersion"]))
 
 if config.file is None:
   sys.exit(0)
@@ -89,9 +89,9 @@ if config.file:
 
   if len(data):
     if config.convert:
-      print "Converting commands in %s:" % config.file
+      print("Converting commands in %s:" % config.file)
     else:
-      print "Commands in %s:" % config.file
+      print("Commands in %s:" % config.file)
     removed = []
     for x in data:
       t = data[x]
@@ -117,15 +117,15 @@ if config.file:
           r = rec["name"].upper()
           changed = True
         if r is not None:
-          print "%12s : %s > %s" % (x, t, r)
+          print("%12s : %s > %s" % (x, t, r))
       else:
-        print "%12s : %s" % (x, t)
+        print("%12s : %s" % (x, t))
     if len(removed):
       changed = True
-      print "\nThe following commands were removed:"
+      print("\nThe following commands were removed:")
       for x in removed:
         del data[x]
-        print "  " + x
+        print("  " + x)
 
 if config.learn and config.file:
   while True:
@@ -145,7 +145,7 @@ if config.learn and config.file:
       if not config.raw:
         rec = recognize(cmd["rawTransmit"])
         if rec is not None:
-          print "It's actually a %s code, changing." % rec["name"].upper()
+          print("It's actually a %s code, changing." % rec["name"].upper())
           cmd = {rec["name"] + "Send": [rec["address"],rec["command"]]}
 
     else:
@@ -165,17 +165,17 @@ if config.learn and config.file:
           cmd = ir.readIR(True)
         # Throw an error if we get none
         if cmd == None:
-          print "Error reading IR command"
+          print("Error reading IR command")
           count = count - 1
           continue
 
         # Continue
-        print "OK"
+        print("OK")
 
         # See if we can interpret this, if so, skip cumbersome filtering
         rec = recognize(cmd["rawTransmit"])
         if rec is not None:
-          print "Detected %s code." % rec["name"].upper()
+          print("Detected %s code." % rec["name"].upper())
           cmd = {rec["name"] + "Send": [rec["address"],rec["command"]]}
           break
 
@@ -198,7 +198,7 @@ if config.learn and config.file:
               candidate = v
           if len(candidate) < 2:
             continue
-          print "Candidates: %d" % len(candidate)
+          print("Candidates: %d" % len(candidate))
 
           # Now, calculate the max delta
           mindelta = 70000 # IRDeluxe is limited at max uint16
@@ -223,10 +223,10 @@ if config.learn and config.file:
                 ideal = tester
           deltas.sort()
           # Statistics...
-          print "Maximum Delta: %d" % totdelta
-          print "Minimum Delta: %d" % mindelta
-          print "Average Delta: %d" % (sum(deltas) / len(deltas))
-          print "Median  Delta: %d" % (deltas[len(deltas)/2])
+          print("Maximum Delta: %d" % totdelta)
+          print("Minimum Delta: %d" % mindelta)
+          print("Average Delta: %d" % (sum(deltas) / len(deltas)))
+          print("Median  Delta: %d" % (deltas[len(deltas)/2]))
           #print "Represented by: " + repr(ideal)
 
           # Ideally, you want less than 5ms, but 25ms is acceptable
@@ -246,22 +246,22 @@ if config.learn and config.file:
           if choice == "y":
             break
           elif choice == "r":
-            print "Restarting collection of IR codes"
+            print("Restarting collection of IR codes")
             count = 0
             input = []
 
-    print "Saved"
+    print("Saved")
     changed = True
     data[name] = cmd;
 
 if config.file:
-  print ""
+  print("")
   if changed:
     sys.stdout.write("Saving commands...")
     sys.stdout.flush()
     jdata = open(config.file, "w")
     jdata.write(json.dumps(data))
     jdata.close()
-    print "OK"
+    print("OK")
   else:
-    print "No changes made."
+    print("No changes made.")
